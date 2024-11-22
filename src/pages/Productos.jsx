@@ -17,7 +17,7 @@ export function Productos() {
   useEffect(() => {
     const fetchProductos = async () => {
       try {
-        const response = await fetch(`$https://coolfresh-api.freemyip.com/productos`);
+        const response = await fetch("https://coolfresh-api.freemyip.com/productos");
         const data = await response.json();
         console.log("Productos recibidos:", data);
         setProductos(data);
@@ -38,7 +38,7 @@ export function Productos() {
   // Agregar un nuevo producto al estado local
   const addProduct = async () => {
     try {
-      const response = await fetch(`https://coolfresh-api.freemyip.com/productos`, {
+      const response = await fetch("https://coolfresh-api.freemyip.com/productos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
