@@ -111,7 +111,7 @@ export function Estadisticas() {
 
   // Conectar al WebSocket
   useEffect(() => {
-    const socket = new WebSocket('wss://coolfresh-api.freemyip.com/websocket');
+    const socket = new WebSocket('wss://44.206.13.10:4000');
 
     socket.onopen = () => {
       console.log('Conexión WebSocket abierta');
