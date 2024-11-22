@@ -111,7 +111,7 @@ export function Estadisticas() {
 
   // Conectar al WebSocket
   useEffect(() => {
-    const socket = new WebSocket('ws://44.201.247.121:4000');
+    const socket = new WebSocket('ws://44.206.13.10:4000');
 
     socket.onopen = () => {
       console.log('Conexión WebSocket abierta');
