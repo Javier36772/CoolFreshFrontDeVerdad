@@ -52,7 +52,7 @@ export function Diagramas() {
 
   // Función para manejar la conexión al WebSocket
   useEffect(() => {
-    const socket = new WebSocket("ws://44.201.247.121:4000"); 
+    const socket = new WebSocket(`${VITE_WS_HOST}`);
 
     socket.onopen = () => {
       console.log("Conexión WebSocket establecida.");

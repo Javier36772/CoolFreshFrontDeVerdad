@@ -17,7 +17,7 @@ export function Productos() {
   useEffect(() => {
     const fetchProductos = async () => {
       try {
-        const response = await fetch("http://localhost:3000/Productos");
+        const response = await fetch(`${VITE_API_HOST}/Productos`);
         const data = await response.json();
         console.log("Productos recibidos:", data);
         setProductos(data);
@@ -38,7 +38,7 @@ export function Productos() {
   // Agregar un nuevo producto al estado local
   const addProduct = async () => {
     try {
-      const response = await fetch("http://localhost:3000/productos", {
+      const response = await fetch(`${VITE_API_HOST}/productos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -74,7 +74,7 @@ export function Productos() {
   // Eliminar un producto con id_Dispositivo
   const deleteProduct = async (id_Productos) => {
     try {
-      const response = await fetch(`http://localhost:3000/productos/${id_Productos}`, {
+      const response = await fetch(`${VITE_API_HOST}/productos/${id_Productos}`, {
         method: "DELETE",
       });
 

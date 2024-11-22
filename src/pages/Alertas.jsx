@@ -8,7 +8,7 @@ export function Alertas() {
   useEffect(() => {
     const fetchAlertas = async () => {
       try {
-        const response = await fetch("http://localhost:3000/Notificacion");
+        const response = await fetch(`${VITE_API_HOST}/Notificacion`);
         const data = await response.json();
         console.log("Alertas recibidas:", data);
         setAlertas(data); // Actualizar el estado con los datos obtenidos
@@ -30,7 +30,7 @@ export function Alertas() {
   const deleteAlerta = async (id_Notificaciones) => {
     try {
       console.log("Intentando eliminar alerta con ID:", id_Notificaciones);
-      const response = await fetch(`http://localhost:3000/Notificacion/${id_Notificaciones}`, {
+      const response = await fetch(`${VITE_API_HOST}/Notificacion/${id_Notificaciones}`, {
         method: "DELETE",
       });
 
