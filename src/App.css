@@ -1,0 +1,62 @@
+/* Estilo general para el contenedor principal */
+.container {
+  height: 100vh;
+  padding: 20px;
+  background-color: #f8f9fa;
+}
+
+/* Estilo para el contenedor de las tarjetas */
+.card-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);  /* Dos columnas */
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* Estilo para cada tarjeta */
+.card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Estilo para el título de la tarjeta */
+.card h2 {
+  margin-bottom: 10px;
+}
+
+/* Estilo para el valor dentro de la tarjeta (como Temperatura, Humedad) */
+.value {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* Estilo general para el estado (como Normal, Advertencia) */
+.status {
+  color: green;
+}
+
+/* Estilo para el estado de advertencia */
+.status.warning {
+  color: orange;
+}
+
+/* Estilo para los gráficos, limitando su altura */
+.card canvas {
+  max-height: 200px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+
+.main-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Ajusta esto para ocupar la altura completa de la pantalla */
+  background-color: #f0f4fa; /* O el color que estés usando */
+}
