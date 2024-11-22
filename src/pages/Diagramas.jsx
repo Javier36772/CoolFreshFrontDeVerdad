@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Line } from "react-chartjs-2";
 import {
@@ -47,13 +47,63 @@ const GraphContainer = styled.div`
 `;
 
 export function Diagramas() {
-  // Datos para la gráfica de probabilidad de escarcha
+  const [probabilidadEscarcha, setProbabilidadEscarcha] = useState([10, 20, 30, 40, 50]);
+  const [tiempoAbierto, setTiempoAbierto] = useState([5, 10, 15, 20, 25]);
+
+  // Función para manejar la conexión al WebSocket
+  useEffect(() => {
+    const socket = new WebSocket("ws://44.201.247.121:4000"); 
+
+    socket.onopen = () => {
+      console.log("Conexión WebSocket establecida.");
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data); 
+
+      if (data) {
+        const newProbabilidad = calculateProbabilidadEscarcha(data);
+        const newTiempoAbierto = calculateTiempoAbierto(data);
+        
+        setProbabilidadEscarcha((prev) => [...prev.slice(1), newProbabilidad]);
+        setTiempoAbierto((prev) => [...prev.slice(1), newTiempoAbierto]);
+      }
+    };
+
+    socket.onclose = () => {
+      console.log("Conexión WebSocket cerrada.");
+    };
+
+    socket.onerror = (error) => {
+      console.error("Error en WebSocket: ", error);
+    };
+
+    // Limpiar la conexión al cerrar el componente
+    return () => {
+      socket.close();
+    };
+  }, []);
+
+  
+  const calculateProbabilidadEscarcha = (data) => {
+    // Lógica para calcular la probabilidad de escarcha
+    // Esto debe ser adaptado a tus necesidades reales (puedes usar los valores de data)
+    return Math.min(100, Math.max(0, (data.humidity + data.temperature) / 2)); 
+  };
+
+  const calculateTiempoAbierto = (data) => {
+    // Lógica para calcular el tiempo abierto
+    // Esto debe ser adaptado a tus necesidades reales (puedes usar los valores de data)
+    return Math.min(60, data.lightLevel * 0.1);
+  };
+
+ 
   const dataProbabilidadEscarcha = {
     labels: ["1 AM", "2 AM", "3 AM", "4 AM", "5 AM"],
     datasets: [
       {
         label: "Probabilidad de Escarcha (%)",
-        data: [10, 20, 30, 40, 50],
+        data: probabilidadEscarcha,
         borderColor: "green",
         backgroundColor: "rgba(75, 192, 192, 0.2)",
         tension: 0.3,
@@ -67,7 +117,7 @@ export function Diagramas() {
     datasets: [
       {
         label: "Tiempo en que estuvo abierto (min)",
-        data: [5, 10, 15, 20, 25],
+        data: tiempoAbierto,
         borderColor: "orange",
         backgroundColor: "rgba(255, 165, 0, 0.2)",
         tension: 0.3,
@@ -119,4 +169,3 @@ export function Diagramas() {
     </Container>
   );
 }
-
