@@ -10,7 +10,7 @@ export function Productos() {
     temperatura_optima_max: "",
     humedad_optima_min: "",
     humedad_optima_max: "",
-    calidad_del_aire: "",
+    calidad_del_aire: "1", // Valor por defecto
   });
 
   // Realizar el GET de los productos de manera automática
@@ -56,7 +56,7 @@ export function Productos() {
           temperatura_optima_max: "",
           humedad_optima_min: "",
           humedad_optima_max: "",
-          calidad_del_aire: "",
+          calidad_del_aire: "1", // Restablecer el valor por defecto
         });
       } else {
         console.error("Error al agregar el producto:", response.statusText);
@@ -94,14 +94,13 @@ export function Productos() {
       <h1>Productos</h1>
 
       <InputContainer>
-       
         <Input
           type="text"
           value={newProduct.Fk_Dispositivos2}
           onChange={(e) => handleInputChange(e, "Fk_Dispositivos2")}
           placeholder="Dispositivo"
         />
-         <Input
+        <Input
           type="text"
           value={newProduct.Nombre}
           onChange={(e) => handleInputChange(e, "Nombre")}
@@ -131,12 +130,6 @@ export function Productos() {
           onChange={(e) => handleInputChange(e, "humedad_optima_max")}
           placeholder="Humedad Máxima"
         />
-        <Input
-          type="text"
-          value={newProduct.calidad_del_aire}
-          onChange={(e) => handleInputChange(e, "calidad_del_aire")}
-          placeholder="Calidad del Aire"
-        />
         <Button onClick={addProduct}>Agregar</Button>
       </InputContainer>
 
@@ -150,7 +143,6 @@ export function Productos() {
             <th>Temperatura Máxima</th>
             <th>Humedad Mínima</th>
             <th>Humedad Máxima</th>
-            <th>Calidad del Aire</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -165,7 +157,7 @@ export function Productos() {
                 <td>{producto.temperatura_optima_max}</td>
                 <td>{producto.humedad_optima_min}</td>
                 <td>{producto.humedad_optima_max}</td>
-                <td>{producto.calidad_del_aire}</td>
+                
                 <td>
                   <Button onClick={() => deleteProduct(producto.id_Productos)}>Eliminar</Button>
                 </td>
