@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { Line } from "react-chartjs-2";
 import {
@@ -12,10 +12,8 @@ import {
   Legend,
 } from "chart.js";
 
-// Registrar componentes necesarios para ChartJS
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-// Contenedor principal
 const Container = styled.div`
   height: 100vh;
   display: flex;
@@ -25,105 +23,102 @@ const Container = styled.div`
   background-color: #f5f5f5;
 `;
 
-// Contenedor para alinear gráficas horizontalmente
 const GraphsWrapper = styled.div`
   display: flex;
-  flex-wrap: wrap; /* Permite que las gráficas se muevan a otra fila si no caben */
-  justify-content: center; /* Centra las gráficas */
-  gap: 20px; /* Espaciado entre las gráficas */
-  width: 90%; /* Limita el ancho total del contenedor */
-  max-width: 1200px; /* Máximo ancho total */
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  width: 90%;
+  max-width: 1200px;
 `;
 
-// Contenedor para cada gráfica
 const GraphContainer = styled.div`
-  flex: 1 1 45%; /* Las gráficas ocuparán hasta el 45% del espacio disponible */
-  min-width: 300px; /* Ancho mínimo para evitar que se compriman demasiado */
-  max-width: 600px; /* Ancho máximo de cada gráfica */
+  flex: 1 1 45%;
+  min-width: 300px;
+  max-width: 600px;
   background: white;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
+const MetricsContainer = styled.div`
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #333;
+`;
+
 export function Diagramas() {
-  const [probabilidadEscarcha, setProbabilidadEscarcha] = useState([10, 20, 30, 40, 50]);
-  const [tiempoAbierto, setTiempoAbierto] = useState([5, 10, 15, 20, 25]);
+  const [probabilidadEscarcha, setProbabilidadEscarcha] = useState(() => {
+    const data = localStorage.getItem("probabilidadEscarcha");
+    return data ? JSON.parse(data) : [];
+  });
 
-  // Función para manejar la conexión al WebSocket
+  const [tiempoAbierto, setTiempoAbierto] = useState(() => {
+    const data = localStorage.getItem("tiempoAbierto");
+    return data ? JSON.parse(data) : [];
+  });
+
+  // Cálculos de métricas
+  const calcularProbabilidadEscarcha = (temperatura, humedad) => {
+    if (humedad > 80 && temperatura <= 0) {
+      return Math.min(100, 50 + (humedad - 80) * 5 + Math.abs(temperatura) * 10);
+    }
+    return Math.max(0, 50 - (humedad - 60) * 2 - Math.abs(temperatura) * 5);
+  };
+
+  const calcularTiempoAbierto = (temperaturaInicial, temperaturaFinal) => {
+    const diferenciaTemperatura = temperaturaFinal - temperaturaInicial;
+    return Math.max(0, diferenciaTemperatura * 2);
+  };
+
+  // Procesar datos recibidos
+  const procesarDatos = (data) => {
+    const nuevaProbabilidad = calcularProbabilidadEscarcha(data.temperature, data.humidity);
+    const nuevoTiempoAbierto = calcularTiempoAbierto(data.temperature - 5, data.temperature); // Ejemplo: usar temperatura-5 como inicial.
+
+    setProbabilidadEscarcha((prev) => {
+      const actualizado = [...prev, nuevaProbabilidad];
+      localStorage.setItem("probabilidadEscarcha", JSON.stringify(actualizado));
+      return actualizado;
+    });
+
+    setTiempoAbierto((prev) => {
+      const actualizado = [...prev, nuevoTiempoAbierto];
+      localStorage.setItem("tiempoAbierto", JSON.stringify(actualizado));
+      return actualizado;
+    });
+  };
+
+  // WebSocket
   useEffect(() => {
-    const socket = new WebSocket(`wss://coolfresh-api.freemyip.com:4000`);
+    const socket = new WebSocket("wss://coolfresh-api.freemyip.com:4000");
 
-    socket.onopen = () => {
-      console.log("Conexión WebSocket establecida.");
-    };
-
+    socket.onopen = () => console.log("Conexión WebSocket abierta");
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data); 
-
-      if (data) {
-        const newProbabilidad = calculateProbabilidadEscarcha(data);
-        const newTiempoAbierto = calculateTiempoAbierto(data);
-        
-        setProbabilidadEscarcha((prev) => [...prev.slice(1), newProbabilidad]);
-        setTiempoAbierto((prev) => [...prev.slice(1), newTiempoAbierto]);
+      try {
+        const receivedData = JSON.parse(event.data);
+        console.log("Datos recibidos:", receivedData);
+        procesarDatos(receivedData);
+      } catch (error) {
+        console.error("Error al procesar los datos del WebSocket:", error);
       }
     };
 
-    socket.onclose = () => {
-      console.log("Conexión WebSocket cerrada.");
-    };
+    socket.onerror = (error) => console.error("Error en WebSocket:", error);
+    socket.onclose = () => console.log("Conexión WebSocket cerrada");
 
-    socket.onerror = (error) => {
-      console.error("Error en WebSocket: ", error);
-    };
-
-    // Limpiar la conexión al cerrar el componente
-    return () => {
-      socket.close();
-    };
+    return () => socket.close();
   }, []);
 
-  
-  const calculateProbabilidadEscarcha = (data) => {
-    // Lógica para calcular la probabilidad de escarcha
-    // Esto debe ser adaptado a tus necesidades reales (puedes usar los valores de data)
-    return Math.min(100, Math.max(0, (data.humidity + data.temperature) / 2)); 
-  };
+  // Métricas
+  const promedioEscarcha =
+    probabilidadEscarcha.length > 0
+      ? (probabilidadEscarcha.reduce((a, b) => a + b, 0) / probabilidadEscarcha.length).toFixed(2)
+      : "N/A";
 
-  const calculateTiempoAbierto = (data) => {
-    // Lógica para calcular el tiempo abierto
-    // Esto debe ser adaptado a tus necesidades reales (puedes usar los valores de data)
-    return Math.min(60, data.lightLevel * 0.1);
-  };
-
- 
-  const dataProbabilidadEscarcha = {
-    labels: ["1 AM", "2 AM", "3 AM", "4 AM", "5 AM"],
-    datasets: [
-      {
-        label: "Probabilidad de Escarcha (%)",
-        data: probabilidadEscarcha,
-        borderColor: "green",
-        backgroundColor: "rgba(75, 192, 192, 0.2)",
-        tension: 0.3,
-      },
-    ],
-  };
-
-  // Datos para la gráfica de tiempo abierto
-  const dataTiempoAbierto = {
-    labels: ["1 AM", "2 AM", "3 AM", "4 AM", "5 AM"],
-    datasets: [
-      {
-        label: "Tiempo en que estuvo abierto (min)",
-        data: tiempoAbierto,
-        borderColor: "orange",
-        backgroundColor: "rgba(255, 165, 0, 0.2)",
-        tension: 0.3,
-      },
-    ],
-  };
+  const totalTiempoAbierto =
+    tiempoAbierto.length > 0 ? tiempoAbierto.reduce((a, b) => a + b, 0).toFixed(2) : "N/A";
 
   return (
     <Container>
@@ -131,39 +126,41 @@ export function Diagramas() {
       <GraphsWrapper>
         <GraphContainer>
           <Line
-            data={dataProbabilidadEscarcha}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: {
-                  display: true,
-                  position: "top",
+            data={{
+              labels: probabilidadEscarcha.map((_, i) => `Muestra ${i + 1}`),
+              datasets: [
+                {
+                  label: "Probabilidad de Escarcha (%)",
+                  data: probabilidadEscarcha,
+                  borderColor: "green",
+                  backgroundColor: "rgba(75, 192, 192, 0.2)",
+                  tension: 0.3,
                 },
-                title: {
-                  display: true,
-                  text: "Probabilidad de Escarcha",
-                },
-              },
+              ],
             }}
           />
+          <MetricsContainer>
+            <p>Promedio de probabilidad de escarcha: {promedioEscarcha}%</p>
+          </MetricsContainer>
         </GraphContainer>
         <GraphContainer>
           <Line
-            data={dataTiempoAbierto}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: {
-                  display: true,
-                  position: "top",
+            data={{
+              labels: tiempoAbierto.map((_, i) => `Muestra ${i + 1}`),
+              datasets: [
+                {
+                  label: "Tiempo Abierto (min)",
+                  data: tiempoAbierto,
+                  borderColor: "orange",
+                  backgroundColor: "rgba(255, 165, 0, 0.2)",
+                  tension: 0.3,
                 },
-                title: {
-                  display: true,
-                  text: "Tiempo en que estuvo abierto",
-                },
-              },
+              ],
             }}
           />
+          <MetricsContainer>
+            <p>Total de tiempo abierto: {totalTiempoAbierto} minutos</p>
+          </MetricsContainer>
         </GraphContainer>
       </GraphsWrapper>
     </Container>
