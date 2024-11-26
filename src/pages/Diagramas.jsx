@@ -11,95 +11,142 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import * as XLSX from "xlsx"; // Importamos la librería XLSX
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 const Container = styled.div`
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  padding: 20px;
   background-color: #f5f5f5;
 `;
 
-const GraphsWrapper = styled.div`
+const Section = styled.div`
+  margin-bottom: 40px;
+`;
+
+const SectionTitle = styled.h2`
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+`;
+
+const GraphWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 20px;
-  width: 90%;
-  max-width: 1200px;
+  justify-content: center;
 `;
 
 const GraphContainer = styled.div`
-  flex: 1 1 45%;
+  width: 45%;
   min-width: 300px;
-  max-width: 600px;
   background: white;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
-const MetricsContainer = styled.div`
-  margin-top: 10px;
-  font-size: 0.9rem;
-  color: #333;
+const MetricsTable = styled.table`
+  margin: 20px auto;
+  width: 80%;
+  border-collapse: collapse;
+`;
+
+const MetricsRow = styled.tr`
+  border: 1px solid #ddd;
+  text-align: center;
+
+  &:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+`;
+
+const MetricsHeader = styled.th`
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+`;
+
+const MetricsCell = styled.td`
+  padding: 10px;
+`;
+
+const Button = styled.button`
+  background-color: #4caf50;
+  color: white;
+  padding: 10px 20px;
+  margin-bottom: 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #45a049;
+  }
 `;
 
 export function Diagramas() {
-  const [probabilidadEscarcha, setProbabilidadEscarcha] = useState(() => {
-    const data = localStorage.getItem("probabilidadEscarcha");
-    return data ? JSON.parse(data) : [];
-  });
+  const [sensorData, setSensorData] = useState([]); // Mantener todos los datos de los sensores
+  const [temperaturas, setTemperaturas] = useState([]);
+  const [humedades, setHumedades] = useState([]);
+  const [indiceConfort, setIndiceConfort] = useState([]);
+  const [probabilidadEscarcha, setProbabilidadEscarcha] = useState([]);
 
-  const [tiempoAbierto, setTiempoAbierto] = useState(() => {
-    const data = localStorage.getItem("tiempoAbierto");
-    return data ? JSON.parse(data) : [];
-  });
+  const calcularIndiceConfort = (temperatura, humedad) => temperatura + 0.5555 * (humedad - 10);
+  const calcularProbabilidadEscarcha = (temperatura, humedad) => Math.max(0, 100 - (temperatura + humedad / 10));
 
-  // Cálculos de métricas
-  const calcularProbabilidadEscarcha = (temperatura, humedad) => {
-    if (humedad > 80 && temperatura <= 0) {
-      return Math.min(100, 50 + (humedad - 80) * 5 + Math.abs(temperatura) * 10);
+  const calcularEstadisticas = (data) => {
+    const filteredData = data.filter((value) => typeof value === "number" && !isNaN(value));
+
+    if (filteredData.length === 0) return { media: "-", mediana: "-", moda: "-" };
+
+    const media = (filteredData.reduce((a, b) => a + b, 0) / filteredData.length).toFixed(2);
+    const sorted = [...filteredData].sort((a, b) => a - b);
+    const mediana =
+      sorted.length % 2 === 0
+        ? ((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2).toFixed(2)
+        : sorted[Math.floor(sorted.length / 2)].toFixed(2);
+
+    const frecuencias = {};
+    filteredData.forEach((num) => {
+      frecuencias[num] = (frecuencias[num] || 0) + 1;
+    });
+    const maxFrecuencia = Math.max(...Object.values(frecuencias));
+    const modas = Object.keys(frecuencias).filter((key) => frecuencias[key] === maxFrecuencia);
+    
+    return { media, mediana, moda: modas.join(", ") };
+  };
+
+  const updateDataFromSocket = (data) => {
+    console.log("Datos recibidos:", data); // Para depurar
+
+    if (data.temperature && data.humidity) {
+      setTemperaturas((prev) => [...prev, data.temperature]);
+      setHumedades((prev) => [...prev, data.humidity]);
+
+      setIndiceConfort((prev) => [...prev, calcularIndiceConfort(data.temperature, data.humidity)]);
+      setProbabilidadEscarcha((prev) => [...prev, calcularProbabilidadEscarcha(data.temperature, data.humidity)]);
+
+      const newData = {
+        timestamp: new Date().toLocaleString(),
+        temperature: data.temperature,
+        airQuality: data.gasDetected ? "Detectado" : "No detectado",
+        lightIntensity: data.light || 0,
+      };
+
+      setSensorData((prevData) => [...prevData, newData]); // Acumular los datos en el estado
     }
-    return Math.max(0, 50 - (humedad - 60) * 2 - Math.abs(temperatura) * 5);
   };
 
-  const calcularTiempoAbierto = (temperaturaInicial, temperaturaFinal) => {
-    const diferenciaTemperatura = temperaturaFinal - temperaturaInicial;
-    return Math.max(0, diferenciaTemperatura * 2);
-  };
-
-  // Procesar datos recibidos
-  const procesarDatos = (data) => {
-    const nuevaProbabilidad = calcularProbabilidadEscarcha(data.temperature, data.humidity);
-    const nuevoTiempoAbierto = calcularTiempoAbierto(data.temperature - 5, data.temperature); // Ejemplo: usar temperatura-5 como inicial.
-
-    setProbabilidadEscarcha((prev) => {
-      const actualizado = [...prev, nuevaProbabilidad];
-      localStorage.setItem("probabilidadEscarcha", JSON.stringify(actualizado));
-      return actualizado;
-    });
-
-    setTiempoAbierto((prev) => {
-      const actualizado = [...prev, nuevoTiempoAbierto];
-      localStorage.setItem("tiempoAbierto", JSON.stringify(actualizado));
-      return actualizado;
-    });
-  };
-
-  // WebSocket
   useEffect(() => {
     const socket = new WebSocket("wss://coolfresh-api.freemyip.com:4000");
 
     socket.onopen = () => console.log("Conexión WebSocket abierta");
+
     socket.onmessage = (event) => {
       try {
         const receivedData = JSON.parse(event.data);
-        console.log("Datos recibidos:", receivedData);
-        procesarDatos(receivedData);
+        updateDataFromSocket(receivedData);
       } catch (error) {
         console.error("Error al procesar los datos del WebSocket:", error);
       }
@@ -111,58 +158,94 @@ export function Diagramas() {
     return () => socket.close();
   }, []);
 
-  // Métricas
-  const promedioEscarcha =
-    probabilidadEscarcha.length > 0
-      ? (probabilidadEscarcha.reduce((a, b) => a + b, 0) / probabilidadEscarcha.length).toFixed(2)
-      : "N/A";
+  // Función para exportar los datos a un archivo Excel
+  const exportToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(sensorData); // Convertir los datos a una hoja de Excel
+    const wb = XLSX.utils.book_new(); // Crear un libro de trabajo
+    XLSX.utils.book_append_sheet(wb, ws, "Datos de Sensores"); // Agregar la hoja al libro
+    XLSX.writeFile(wb, "datos_sensores.xlsx"); // Descargar el archivo Excel
+  };
 
-  const totalTiempoAbierto =
-    tiempoAbierto.length > 0 ? tiempoAbierto.reduce((a, b) => a + b, 0).toFixed(2) : "N/A";
+  const estadisticasConfort = calcularEstadisticas(indiceConfort);
+  const estadisticasEscarcha = calcularEstadisticas(probabilidadEscarcha);
+  const estadisticasTemperatura = calcularEstadisticas(temperaturas);
+  const estadisticasHumedad = calcularEstadisticas(humedades);
 
   return (
     <Container>
-      <h1>Diagramas</h1>
-      <GraphsWrapper>
-        <GraphContainer>
-          <Line
-            data={{
-              labels: probabilidadEscarcha.map((_, i) => `Muestra ${i + 1}`),
-              datasets: [
-                {
-                  label: "Probabilidad de Escarcha (%)",
-                  data: probabilidadEscarcha,
-                  borderColor: "green",
-                  backgroundColor: "rgba(75, 192, 192, 0.2)",
-                  tension: 0.3,
-                },
-              ],
-            }}
-          />
-          <MetricsContainer>
-            <p>Promedio de probabilidad de escarcha: {promedioEscarcha}%</p>
-          </MetricsContainer>
-        </GraphContainer>
-        <GraphContainer>
-          <Line
-            data={{
-              labels: tiempoAbierto.map((_, i) => `Muestra ${i + 1}`),
-              datasets: [
-                {
-                  label: "Tiempo Abierto (min)",
-                  data: tiempoAbierto,
-                  borderColor: "orange",
-                  backgroundColor: "rgba(255, 165, 0, 0.2)",
-                  tension: 0.3,
-                },
-              ],
-            }}
-          />
-          <MetricsContainer>
-            <p>Total de tiempo abierto: {totalTiempoAbierto} minutos</p>
-          </MetricsContainer>
-        </GraphContainer>
-      </GraphsWrapper>
+      <Section>
+        <SectionTitle>Estadísticas de los Sensores</SectionTitle>
+        <MetricsTable>
+          <thead>
+            <tr>
+              <MetricsHeader>Parámetro</MetricsHeader>
+              <MetricsHeader>Media</MetricsHeader>
+              <MetricsHeader>Mediana</MetricsHeader>
+              <MetricsHeader>Moda</MetricsHeader>
+            </tr>
+          </thead>
+          <tbody>
+            <MetricsRow>
+              <MetricsCell>Temperatura</MetricsCell>
+              <MetricsCell>{estadisticasTemperatura.media}</MetricsCell>
+              <MetricsCell>{estadisticasTemperatura.mediana}</MetricsCell>
+              <MetricsCell>{estadisticasTemperatura.moda}</MetricsCell>
+            </MetricsRow>
+            <MetricsRow>
+              <MetricsCell>Humedad</MetricsCell>
+              <MetricsCell>{estadisticasHumedad.media}</MetricsCell>
+              <MetricsCell>{estadisticasHumedad.mediana}</MetricsCell>
+              <MetricsCell>{estadisticasHumedad.moda}</MetricsCell>
+            </MetricsRow>
+            <MetricsRow>
+              <MetricsCell>Índice de Confort</MetricsCell>
+              <MetricsCell>{estadisticasConfort.media}</MetricsCell>
+              <MetricsCell>{estadisticasConfort.mediana}</MetricsCell>
+              <MetricsCell>{estadisticasConfort.moda}</MetricsCell>
+            </MetricsRow>
+            <MetricsRow>
+              <MetricsCell>Probabilidad de Escarcha</MetricsCell>
+              <MetricsCell>{estadisticasEscarcha.media}</MetricsCell>
+              <MetricsCell>{estadisticasEscarcha.mediana}</MetricsCell>
+              <MetricsCell>{estadisticasEscarcha.moda}</MetricsCell>
+            </MetricsRow>
+          </tbody>
+        </MetricsTable>
+        <Button onClick={exportToExcel}>Exportar a Excel</Button>
+      </Section>
+
+      <Section>
+        <SectionTitle>Gráficas de los Sensores</SectionTitle>
+        <GraphWrapper>
+          <GraphContainer>
+            <h3>Temperatura</h3>
+            <Line data={{
+              labels: temperaturas.map((_, index) => `Medición ${index + 1}`),
+              datasets: [{
+                label: "Temperatura (°C)",
+                data: temperaturas,
+                fill: false,
+                borderColor: "rgba(75, 192, 192, 1)",
+                tension: 0.1,
+              }],
+            }} />
+          </GraphContainer>
+
+          <GraphContainer>
+            <h3>Humedad</h3>
+            <Line data={{
+              labels: humedades.map((_, index) => `Medición ${index + 1}`),
+              datasets: [{
+                label: "Humedad (%)",
+                data: humedades,
+                fill: false,
+                borderColor: "rgba(153, 102, 255, 1)",
+                tension: 0.1,
+              }],
+            }} />
+          </GraphContainer>
+        </GraphWrapper>
+      </Section>
     </Container>
   );
 }

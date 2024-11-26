@@ -105,6 +105,7 @@ const linksArray = [
   { label: "Productos", icon: <AiOutlineApartment />, to: "/productos" },
   { label: "Diagramas", icon: <MdOutlineAnalytics />, to: "/diagramas" },
   { label: "Alertas", icon: <AiOutlineApartment />, to: "/alertas" },
+  { label: "Tabla", icon: <AiOutlineApartment />, to: "/tabla" }, // Nueva sección
 ];
 
 // Array de enlaces secundarios

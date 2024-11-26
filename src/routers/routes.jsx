@@ -7,6 +7,7 @@ import { Estadisticas } from "../pages/Estadisticas";
 import { Productos } from "../pages/Productos";
 import { Diagramas } from "../pages/Diagramas";
 import { Alertas } from "../pages/Alertas";
+import { Tabla } from "../pages/Tabla"
 
 export function MyRoutes({ onLogin, isAuthenticated }) {
   return (
@@ -17,6 +18,7 @@ export function MyRoutes({ onLogin, isAuthenticated }) {
       <Route path="/estadisticas" element={isAuthenticated ? <Estadisticas /> : <Navigate to="/" />} />
       <Route path="/diagramas" element={isAuthenticated ? <Diagramas /> : <Navigate to="/" />} />
       <Route path="/alertas" element={isAuthenticated ? <Alertas /> : <Navigate to="/" />} />
+      <Route path="/tabla" element={isAuthenticated ? <Tabla /> : <Navigate to="/" />} /> {/* Nueva ruta */}
     </Routes>
   );
 }
